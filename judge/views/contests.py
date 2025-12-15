@@ -124,6 +124,7 @@ class ContestList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ContestL
         context = super(ContestList, self).get_context_data(**kwargs)
         present, active, future = [], [], []
         finished = set()
+        joined = set()  # Track all contests the user has joined
         for contest in self._get_queryset().exclude(end_time__lt=self._now):
             if contest.start_time > self._now:
                 future.append(contest)
@@ -136,6 +137,7 @@ class ContestList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ContestL
                     .select_related('contest') \
                     .prefetch_related('contest__authors', 'contest__curators', 'contest__testers') \
                     .annotate(key=F('contest__key')):
+                joined.add(participation.contest.key)  # Mark contest as joined
                 if participation.ended:
                     finished.add(participation.contest.key)
                 else:
@@ -149,6 +151,7 @@ class ContestList(QueryStringSortMixin, DiggPaginatorMixin, TitleMixin, ContestL
         context['current_contests'] = present
         context['future_contests'] = future
         context['finished_contests'] = finished
+        context['joined_contests'] = joined
         context['now'] = self._now
         context['first_page_href'] = '.'
         context['page_suffix'] = '#past-contests'
